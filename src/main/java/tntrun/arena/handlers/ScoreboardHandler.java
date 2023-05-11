@@ -24,11 +24,12 @@ import org.bukkit.scoreboard.Scoreboard;
 import tntrun.TNTRun;
 import tntrun.arena.Arena;
 import tntrun.utils.FormattingCodesParser;
+import tntrun.utils.Scheduler;
 
 public class ScoreboardHandler {
 
 	private final TNTRun plugin;
-	private int playingtask;
+	private Scheduler.ScheduledTask playingtask;
 	private Arena arena;
 
 	public ScoreboardHandler(TNTRun plugin, Arena arena) {
@@ -86,14 +87,14 @@ public class ScoreboardHandler {
 		if (!plugin.getConfig().getBoolean("special.UseScoreboard")) {
 			return;
 		}
-		playingtask = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, new Runnable() {
+		playingtask = Scheduler.runTaskTimer(plugin, new Runnable() {
 			public void run() {
 				for (Player player : arena.getPlayersManager().getPlayers()) {
-					updatePlayingScoreboard(player);
+					Scheduler.executeOrScheduleSync(plugin, () -> updatePlayingScoreboard(player), player);
 				}
 				if (!plugin.getConfig().getBoolean("scoreboard.removefromspectators")) {
 					for (Player player : arena.getPlayersManager().getSpectators()) {
-						updatePlayingScoreboard(player);
+						Scheduler.executeOrScheduleSync(plugin, () -> updatePlayingScoreboard(player), player);
 					}
 				}
 			}
@@ -118,7 +119,7 @@ public class ScoreboardHandler {
 		}
 	}
 
-	public int getPlayingTask() {
+	public Scheduler.ScheduledTask getPlayingTask() {
 		return playingtask;
 	}
 }

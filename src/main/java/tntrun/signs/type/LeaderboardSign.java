@@ -25,6 +25,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import tntrun.TNTRun;
 import tntrun.messages.Messages;
 import tntrun.utils.FormattingCodesParser;
+import tntrun.utils.Scheduler;
 
 public class LeaderboardSign implements SignType {
 
@@ -45,12 +46,7 @@ public class LeaderboardSign implements SignType {
 		e.setLine(0, FormattingCodesParser.parseFormattingCodes(plugin.getConfig().getString("signs.prefix")));
 		plugin.getSignEditor().addLeaderboardSign(e.getBlock());
 		Messages.sendMessage(e.getPlayer(), Messages.signcreate);
-		new BukkitRunnable() {
-			@Override
-			public void run() {
-				plugin.getSignEditor().modifyLeaderboardSign(e.getBlock());
-			}
-		}.runTask(plugin);
+		Scheduler.runTask(plugin, () -> plugin.getSignEditor().modifyLeaderboardSign(e.getBlock()), e.getBlock().getLocation());
 	}
 
 	@Override

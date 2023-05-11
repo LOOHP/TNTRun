@@ -3,6 +3,7 @@ main: tntrun.TNTRun
 softdepend: [WorldEdit, Vault, HeadsPlus, mcMMO, PlaceholderAPI, Parties]
 version: ${project.version}
 api-version: 1.16
+folia-supported: true
 author: [steve4744]
 commands:
   tntrunsetup:

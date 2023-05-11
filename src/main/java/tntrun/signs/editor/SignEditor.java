@@ -45,6 +45,7 @@ import tntrun.TNTRun;
 import tntrun.arena.Arena;
 import tntrun.messages.Messages;
 import tntrun.utils.FormattingCodesParser;
+import tntrun.utils.Scheduler;
 
 public class SignEditor {
 
@@ -204,8 +205,8 @@ public class SignEditor {
 				return;
 			}
 
-			String text = null;
-			String colour = null;
+			String text;
+			String colour;
 			int players = arena.getPlayersManager().getPlayersCount();
 			int maxPlayers = arena.getStructureManager().getMaxPlayers();
 			String status = (players == maxPlayers) ? "Running" : arena.getStatusManager().getArenaStatus();
@@ -233,16 +234,18 @@ public class SignEditor {
 			}
 
 			for (Block block : getSignsBlocks(arenaname)) {
-				if (block.getState() instanceof Sign) {
-					Sign sign = (Sign) block.getState();
-					sign.setLine(0, FormattingCodesParser.parseFormattingCodes(plugin.getConfig().getString("signs.prefix")));
-					sign.setLine(1, FormattingCodesParser.parseFormattingCodes(plugin.getConfig().getString("signs.join")));
-					sign.setLine(3, text);
-					sign.update();
-					setBlockColour(block, colour);
-				} else {
-					removeSign(block, arenaname);
-				}
+				Scheduler.runTask(plugin, () -> {
+					if (block.getState() instanceof Sign) {
+						Sign sign = (Sign) block.getState();
+						sign.setLine(0, FormattingCodesParser.parseFormattingCodes(plugin.getConfig().getString("signs.prefix")));
+						sign.setLine(1, FormattingCodesParser.parseFormattingCodes(plugin.getConfig().getString("signs.join")));
+						sign.setLine(3, text);
+						sign.update();
+						setBlockColour(block, colour);
+					} else {
+						removeSign(block, arenaname);
+					}
+				}, block.getLocation());
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -343,11 +346,6 @@ public class SignEditor {
 		sign.setLine(2, FormattingCodesParser.parseFormattingCodes(arenaname));
 		addSign(block, arenaname);
 		sign.update();
-		new BukkitRunnable() {
-			@Override
-			public void run() {
-				modifySigns(arenaname);
-			}
-		}.runTask(plugin);
+		modifySigns(arenaname);
 	}
 }

@@ -14,6 +14,7 @@ import com.google.common.io.ByteStreams;
 import tntrun.TNTRun;
 import tntrun.arena.Arena;
 import tntrun.messages.Messages;
+import tntrun.utils.Scheduler;
 
 public class BungeeHandler implements Listener {
 
@@ -104,8 +105,8 @@ public class BungeeHandler implements Listener {
 		}
 
 		if (!arena.getPlayerHandler().canSpectate(player)) {
-			plugin.getServer().getScheduler().runTaskLater(plugin, () ->
-					connectToHub(player), 20L);
+			Scheduler.runTaskLater(plugin, () ->
+					connectToHub(player), 20L, player);
 			return;
 		}
 

@@ -39,6 +39,7 @@ import tntrun.events.ArenaStartEvent;
 import tntrun.events.ArenaTimeoutEvent;
 import tntrun.events.PlayerWinArenaEvent;
 import tntrun.utils.Bars;
+import tntrun.utils.Scheduler;
 import tntrun.utils.TitleMsg;
 import tntrun.utils.Utils;
 import tntrun.messages.Messages;
@@ -60,10 +61,10 @@ public class GameHandler {
 		signEditor = plugin.getSignEditor();
 	}
 
-	private int leavetaskid;
+	private Scheduler.ScheduledTask leavetask;
 
 	public void startArenaAntiLeaveHandler() {
-		leavetaskid = Bukkit.getScheduler().scheduleSyncRepeatingTask(
+		leavetask = Scheduler.runTaskTimer(
 			plugin,
 			new Runnable() {
 				@Override
@@ -86,16 +87,16 @@ public class GameHandler {
 					}
 				}
 			},
-			0, 1
+			0, 1, arena.getStructureManager().getP1().toLocation(arena.getStructureManager().getWorld())
 		);
 	}
 
 	public void stopArenaAntiLeaveHandler() {
-		Bukkit.getScheduler().cancelTask(leavetaskid);
+		leavetask.cancel();
 	}
 
 	// arena start handler (running status updater)
-	int runtaskid;
+	Scheduler.ScheduledTask runtask;
 	public int count;
 
 	/**
@@ -109,7 +110,7 @@ public class GameHandler {
 		signEditor.modifySigns(arena.getArenaName());
 		int antiCamping = Math.max(plugin.getConfig().getInt("anticamping.teleporttime"), 5);
 		int startVisibleCountdown = arena.getStructureManager().getStartVisibleCountdown();
-		runtaskid = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, new Runnable() {
+		runtask = Scheduler.runTaskTimer(plugin, new Runnable() {
 			@Override
 			public void run() {
 				// check if countdown should be stopped for various reasons
@@ -128,16 +129,18 @@ public class GameHandler {
 				} else if(count == antiCamping) {
 					String message = Messages.arenacountdown.replace("{COUNTDOWN}", String.valueOf(count));
 					for (Player player : arena.getPlayersManager().getPlayers()) {
-						if (isAntiCamping() && !arena.getStructureManager().hasAdditionalSpawnPoints()) {
-							player.teleport(arena.getStructureManager().getSpawnPoint());
-						}
-						displayCountdown(player, count, message);
+						Scheduler.executeOrScheduleSync(plugin, () -> {
+							if (isAntiCamping() && !arena.getStructureManager().hasAdditionalSpawnPoints()) {
+								player.teleport(arena.getStructureManager().getSpawnPoint());
+							}
+							displayCountdown(player, count, message);
+						}, player);
 					}
 
 				} else if (count <= startVisibleCountdown || count % 10 == 0) {
 					String message = Messages.arenacountdown.replace("{COUNTDOWN}", String.valueOf(count));
 					for (Player player : arena.getPlayersManager().getPlayers()) {
-						displayCountdown(player, count, message);
+						Scheduler.executeOrScheduleSync(plugin, () -> displayCountdown(player, count, message), player);
 					}
 				}
 
@@ -147,7 +150,7 @@ public class GameHandler {
 
 				if (plugin.getConfig().getBoolean("usexpbar.countdown")) {
 					for (Player player : arena.getPlayersManager().getPlayers()) {
-						player.setLevel(count);
+						Scheduler.executeOrScheduleSync(plugin, () -> player.setLevel(count), player);
 					}
 				}
 				count--;
@@ -161,13 +164,13 @@ public class GameHandler {
 	public void stopArenaCountdown() {
 		arena.getStatusManager().setStarting(false);
 		signEditor.modifySigns(arena.getArenaName());
-		Bukkit.getScheduler().cancelTask(runtaskid);
+		runtask.cancel();
 		count = arena.getStructureManager().getCountdown();
 	}
 
 	// main arena handler
 	private int timeremaining;
-	private int arenahandler;
+	private Scheduler.ScheduledTask arenahandler;
 	private boolean forceStartByCmd;
 	private boolean hasTimeLimit;
 
@@ -229,7 +232,7 @@ public class GameHandler {
 
 		timeremaining = limit * 20;
 		arena.getScoreboardHandler().createPlayingScoreBoard();
-		arenahandler = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, new Runnable() {
+		arenahandler = Scheduler.runTaskTimer(plugin, new Runnable() {
 			@Override
 			public void run() {
 				// stop arena if player count is 0
@@ -245,22 +248,26 @@ public class GameHandler {
 					plugin.getServer().getPluginManager().callEvent(new ArenaTimeoutEvent(arena));
 					places.clear();
 					for (Player player : arena.getPlayersManager().getPlayersCopy()) {
-						arena.getPlayerHandler().leavePlayer(player, Messages.arenatimeout, "");
+						Scheduler.executeOrScheduleSync(plugin, () -> arena.getPlayerHandler().leavePlayer(player, Messages.arenatimeout, ""), player);
 					}
 					return;
 				}
 				double progress = 1.0;
-				int seconds = 0;
+				int seconds;
 				if (hasTimeLimit) {
 					progress = (double) timeremaining / (arena.getStructureManager().getTimeLimit() * 20);
 					seconds = (int) Math.ceil((double)timeremaining / 20);
+				} else {
+					seconds = 0;
 				}
 				Bars.setBar(arena, Bars.playing, arena.getPlayersManager().getPlayersCount(), seconds, progress, plugin);
 				for (Player player : arena.getPlayersManager().getPlayersCopy()) {
-					if (plugin.getConfig().getBoolean("usexpbar.timelimit")) {
-						player.setLevel(seconds);
-					}
-					handlePlayer(player);
+					Scheduler.executeOrScheduleSync(plugin, () -> {
+						if (plugin.getConfig().getBoolean("usexpbar.timelimit")) {
+							player.setLevel(seconds);
+						}
+						handlePlayer(player);
+					}, player);
 				}
 				timeremaining--;
 			}
@@ -291,8 +298,8 @@ public class GameHandler {
 		places.clear();
 		arena.getPlayerHandler().clearRewardedPlayers();
 		arena.getPlayersManager().setWinner(null);
-		Bukkit.getScheduler().cancelTask(arenahandler);
-		Bukkit.getScheduler().cancelTask(arena.getScoreboardHandler().getPlayingTask());
+		arenahandler.cancel();
+		arena.getScoreboardHandler().getPlayingTask().cancel();
 		signEditor.modifySigns(arena.getArenaName());
 		if (arena.getStatusManager().isArenaEnabled()) {
 			startArenaRegen();
@@ -432,8 +439,8 @@ public class GameHandler {
 			p.getInventory().clear();
 		}
 
-		Bukkit.getScheduler().cancelTask(arenahandler);
-		Bukkit.getScheduler().cancelTask(arena.getScoreboardHandler().getPlayingTask());
+		arenahandler.cancel();
+		arena.getScoreboardHandler().getPlayingTask().cancel();
 
 		plugin.getServer().getPluginManager().callEvent(new PlayerWinArenaEvent(player, arena));
 
