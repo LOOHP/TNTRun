@@ -12,6 +12,11 @@
 [![Crowdin](https://badges.crowdin.net/tntrunreloaded/localized.svg)](https://crowdin.com/project/tntrunreloaded)
 [![PayPal](https://img.shields.io/badge/paypal-donate-yellow?logo=paypal)](https://www.paypal.com/paypalme/steve4744)
 
+## Contributors to make it Folia Support - Folia Inquisitors
+
+[<img src="https://github.com/Yomamaeatstoes.png" width=80 alt="Yomamaeatstoes">](https://github.com/Yomamaeatstoes)
+
+[<img src="https://github.com/LOOHP.png" width=80 alt="LOOHP">](https://github.com/LOOHP)
 
 ## Description
 
