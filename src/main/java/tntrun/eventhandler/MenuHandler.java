@@ -97,6 +97,7 @@ public class MenuHandler implements Listener {
 			return;
 		}
 
+		inv.setMaxStackSize(256); // allow min and max players to go above 64
 		Player player = (Player) e.getWhoClicked();
 		String arenaname = is.getItemMeta().getDisplayName();
 		String cmd = "tntrun join " + ChatColor.stripColor(arenaname);
@@ -293,6 +294,8 @@ public class MenuHandler implements Listener {
 					player.closeInventory();
 					plugin.getMenus().buildConfigMenu(player, arena, 2);
 				}
+				return;
+			default:
 				return;
 		}
 		plugin.getMenus().updateConfigItem(inv, slot, arena, page);

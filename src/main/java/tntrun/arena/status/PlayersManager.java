@@ -37,8 +37,8 @@ public class PlayersManager {
 		return players.containsKey(name) || spectators.containsKey(name);
 	}
 
-	public int getPlayersCount() {
-		return players.size();
+	public int getSpectatorsCount() {
+		return spectators.size();
 	}
 
 	public HashSet<Player> getAllParticipantsCopy() {
